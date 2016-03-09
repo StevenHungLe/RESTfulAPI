@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    Options +FollowSymLinks -MultiViews
+
+    RewriteEngine On
+    RewriteRule API/(.*)$ API.php?request=$1 [QSA,NC,L]
+    
+    
+    #DEPRECATED RULES
+    #RewriteRule ^myAPI/login/([A-Za-z0-9-]*)/([A-Za-z0-9-]*)$ myAPI.php?USERNAME=$1&PASSWORD=$2 [NC,L]
+	#RewriteCond %{REQUEST_METHOD} DELETE [NC]
+	#RewriteRule ^myAPI/login/(.*)$ myAPI.php [NC,L]
+	#RewriteRule ^myAPI(.*)$ myAPI.php [NC,L]
+</IfModule>
