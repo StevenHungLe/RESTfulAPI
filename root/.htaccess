@@ -1,8 +1,10 @@
 <IfModule mod_rewrite.c>
     Options +FollowSymLinks -MultiViews
-
+    
     RewriteEngine On
-    RewriteRule API/(.*)$ API.php?request=$1 [QSA,NC,L]
+    
+    #Direct all requests to the main page, passing in the request as a parameter
+    RewriteRule API/(.*)$ API.php?request=$1 [QSA,NC,L] 
     
     
     #DEPRECATED RULES

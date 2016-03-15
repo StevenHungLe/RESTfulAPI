@@ -1,5 +1,10 @@
 <?php	
-
+/**
+* 
+* The main and single file of the RESTful API
+* accepts and processes requests and maintains the underlying database
+* 
+*/
 
 // establish connection with the database
 $conn = new mysqli('localhost','hungle','hungle123456');
@@ -10,8 +15,16 @@ IF ( $conn->connect_error)
 	// obtain user full request
 	$request = $_GET['request'];
 	
-	// obtain the command to determine what action the client is trying to do
+	// using strtok with delimiter "/", split the request into tokens
+	// The first token is the command indicating the action to be performed
 	$command = strtok($request,"/");
+	
+	/**
+	* 
+	* Inspect the command to determine what operation is to be done
+	* call the appropriate function passing the appropriate parameters
+	* 
+	*/
 	
 	// CASE: login command - the client is trying to log in or log out
 	if ( strcmp($command,"login" ) == 0 )
@@ -19,6 +32,7 @@ IF ( $conn->connect_error)
 		// CASE: GET method - the client is trying to log in
 		if ($_SERVER['REQUEST_METHOD'] == "GET" )
 		{
+			// get the needed parameters then call the login function
 			$user_id = strtok("/");
 			$password = strtok("/");
 			login( $user_id , $password );
@@ -27,12 +41,13 @@ IF ( $conn->connect_error)
 		// CASE: DELETE method - the client is trying to log out
 		elseif ($_SERVER['REQUEST_METHOD'] == "DELETE" )
 		{
+			// get the needed parameters then call the logout function
 			$access_token = strtok("/");
 			logout( $access_token );
 		}
 		
-		
 	}
+	
 	
 	// CASE: POST method - the client is trying to create a new entry 
 	elseif( $_SERVER['REQUEST_METHOD'] == "POST" )
@@ -41,31 +56,88 @@ IF ( $conn->connect_error)
 		$args = json_decode( file_get_contents('php://input'), true );
 	
 	
-		// CASE: users command - the client is trying to create a new user
-		if( $command == "users")
+		// call function is_authorized to verify user's eligibility for this action
+		if ( !is_authorized( $args['ACCESS_TOKEN'], 1) )
 		{
-			if ( is_authorized( $args['ACCESS_TOKEN'], 1) )
-			{
-				createNewUser($args['USER_ID'],$args['PASSWORD'],$args['IS_ADMIN']);
-			}
-			else
-				http_response_code(401);
+			http_response_code(401);
+			die ("Unauthorized action");
+		}
+		
+			
+		// CASE: users command - the client is trying to create a new user
+		elseif( $command == "users")
+		{
+			createNewUser($args['USER_ID'],$args['PASSWORD'],$args['IS_ADMIN']);
 		}
 		
 		// CASE: orgs command - the client is trying to create a new organization
 		elseif( $command == "orgs")
 		{
-			if ( is_authorized( $args['ACCESS_TOKEN'], 1) )
-			{
-				createNewOrg($args['ORG_ID'],$args['ORG_NAME']);
-			}
-			else
-				http_response_code(401);
+			createNewOrg($args['ORG_ID'],$args['ORG_NAME']);
+		}
+		
+		// CASE: associations command - the client is trying to create a new user-organization association
+		elseif( $command == "associations")
+		{
+			assocOrgWithUser($args['ORG_ID'],$args['USR_ID']);
+		}
+		
+		// CASE: players command - the client is trying to create a new player
+		elseif( $command == "players")
+		{
+			createNewPlayer($args['player_name'],$args['birthdate'],$args['gender'],$args['active'],$args['org_id']);
+		}
+		
+		// CASE: undefined operation
+		else
+		{
+			http_response_code(500);
+		}
+	}
+	
+	
+	// CASE: DELETE method - the client is trying to delete an entry 
+	elseif( $_SERVER['REQUEST_METHOD'] == "DELETE" )
+	{	
+		// CASE: users command - the client is trying to delete a user
+		if( $command == "users")
+		{
+			$user_id = strtok("/");
+			deleteUser($user_id);
+		}
+		
+		// CASE: orgs command - the client is trying to delete an organization
+		elseif( $command == "orgs")
+		{
+			$org_id = strtok("/");
+			deleteOrg($org_id);
+		}
+		
+		// CASE: associations command - the client is trying to delete a user-organization association
+		elseif( $command == "associations")
+		{
+			$org_id = strtok("/");
+			$user_id = strtok("/");
+			deleteAssociation($org_id,$user_id);
+		}
+		
+		// CASE: players command - the client is trying to delete a player
+		elseif( $command == "players")
+		{
+			$player_name = strtok("/");
+			deletePlayer($player_name);
+		}
+		
+		// CASE: undefined operation
+		else
+		{
+			http_response_code(500);
 		}
 	}
 	
 
-// login function - faciliate a log in attempt
+
+// function: processes a log in request
 function login($arg_user_id , $arg_password)
 {
 	global $conn;
@@ -119,7 +191,7 @@ function login($arg_user_id , $arg_password)
 }
 
 
-// logout function - faciliate a log out attempt
+// function: processes a log out request
 function logout( $access_token )
 {
 	global $conn;
@@ -167,6 +239,7 @@ function logout( $access_token )
 }
 
 
+// function: processes a request to create a new user
 function createNewUser($user_id, $password, $is_admin)
 {
 	global $conn;
@@ -174,21 +247,35 @@ function createNewUser($user_id, $password, $is_admin)
 	$stmt = $conn->prepare("INSERT INTO mydb.Users(user_id,password,is_admin) VALUES (?,?,?)");
 	$stmt->bind_param("sss",$user_id,$password,$is_admin );
 	
-	//successful user creation
+	//successful operation
 	if ( $stmt->execute())
-	{
 		http_response_code(200);
-	}
-	
 	//failed
 	else
-	{
 		http_response_code(500);
-	}
 		
 }
 
 
+// function: processes a request to delete a user
+function deleteUser($user_id)
+{
+	global $conn;
+	
+	$stmt = $conn->prepare("DELETE FROM mydb.Users WHERE user_id = ?");
+	$stmt->bind_param("s",$user_id);
+	
+	//successful operation
+	if ( $stmt->execute())
+		http_response_code(200);
+	//failed
+	else
+		http_response_code(500);
+		
+}
+
+
+// function: processes a request to create new organization
 function createNewOrg($org_id, $org_name)
 {
 	global $conn;
@@ -196,150 +283,104 @@ function createNewOrg($org_id, $org_name)
 	$stmt = $conn->prepare("INSERT INTO mydb.Organizations(org_id,org_name) VALUES (?,?)");
 	$stmt->bind_param("ss",$org_id,$org_name);
 	
-	//successful organization creation
+	//successful operation
 	if ( $stmt->execute())
-	{
 		http_response_code(200);
-	}
+	//failed
+	else
+		http_response_code(500);
+}
+
+// function: processes a request to delete a organization
+function deleteOrg($org_id)
+{
+	global $conn;
 	
+	$stmt = $conn->prepare("DELETE FROM mydb.Organizations WHERE org_id = ?");
+	$stmt->bind_param("s",$org_id);
+	
+	//successful operation
+	if ( $stmt->execute())
+		http_response_code(200);
+	//failed
+	else
+		http_response_code(500);
+}
+
+
+
+// function: processes a request to associate a user with an organization
+function assocOrgWithUser($org_id, $usr_id)
+{
+	global $conn;
+	
+	$stmt = $conn->prepare("INSERT INTO mydb.org_user(org_id,usr_id) VALUES (?,?)");
+	$stmt->bind_param("ss",$org_id,$usr_id);
+	
+	//successful operation
+	if ( $stmt->execute())
+		http_response_code(200);
 	//failed
 	else
 		http_response_code(500);
 		
 }
 
-/*
-// POST METHOD
-if ( $_SERVER['REQUEST_METHOD']=='POST')
+
+// function: processes a request to delete a org_user association
+function deleteAssociation($org_id, $usr_id)
 {
+	global $conn;
 	
-	// Decode the Json request into array of arguments
-	$args = json_decode( file_get_contents('php://input'), true );
-
-	// ACTION: CREATE NEW USER
-	if ( isset($args['USER_ID']) && isset($args['PASSWORD']) && isset($args['IS_ADMIN']))
-	{
-		// call function is_authorized to check whether this action is allowed...
-		// for the user associated with the access token
-		// if not, return 401 unauthorized and exit
-		if ( !is_authorized($args['ACCESS_TOKEN'], 1))
-		{
-			http_response_code(401);
-			exit(1);
-		}
-		
-		$stmt = $conn->prepare("INSERT INTO mydb.Users(user_id,password,is_admin) VALUES (?,?,?)");
-		$stmt->bind_param("sss",$args['USER_ID'],$args['PASSWORD'],$args['IS_ADMIN'] );
-		
-		//successful user creation
-		if ( $stmt->execute())
-		{
-			http_response_code(200);
-		}
-		
-		//failed
-		else
-			http_response_code(500);
-	}
+	$stmt = $conn->prepare("DELETE FROM mydb.org_user WHERE org_id = ? AND usr_id = ?");
+	$stmt->bind_param("ss",$org_id,$usr_id);
 	
-	
-	// ACTION: CREATE NEW ORGANIZATION
-	elseif ( isset($args['ORG_ID']) && isset($args['ORG_NAME']))
-	{
-		
-		// call function is_authorized to check whether this action is allowed...
-		// for the user associated with the access token
-		// if not, return 401 unauthorized and exit
-		if ( !is_authorized($args['ACCESS_TOKEN'], 1))
-		{
-			http_response_code(401);
-			exit(1);
-		}
-		
-		
-		$stmt = $conn->prepare("INSERT INTO mydb.Organizations(org_id,org_name) VALUES (?,?)");
-		$stmt->bind_param("ss",$args['ORG_ID'],$args['ORG_NAME']);
-		
-		//successful organization creation
-		if ( $stmt->execute())
-		{
-			http_response_code(200);
-		}
-		
-		//failed
-		else
-			http_response_code(500);
-	}
-	
-	
-	// ACTION: CREATE NEW ASSOCIATION BETWEEN A USER AND AN ORGANIZATION
-	elseif ( isset($args['ORG_ID']) && isset($args['USR_ID']))
-	{
-		
-		// call function is_authorized to check whether this action is allowed...
-		// for the user associated with the access token
-		// if not, return 401 unauthorized and exit
-		if ( !is_authorized( $args['ACCESS_TOKEN'], 1 ))
-		{
-			http_response_code(401);
-			exit(1);
-		}
-		
-		
-		$stmt = $conn->prepare("INSERT INTO mydb.org_user(org_id,usr_id) VALUES (?,?)");
-		$stmt->bind_param("ss",$args['ORG_ID'],$args['USR_ID']);
-		
-		//successful association creation
-		if ( $stmt->execute())
-		{
-			http_response_code(200);
-		}
-		
-		//failed
-		else
-			http_response_code(500);
-	}
-	
-	// ACTION: CREATE A NEW PLAYER IN AN ORGANIZATION
-	elseif ( isset($args['player_name']) && isset($args['birthdate']) && isset($args['gender'])
-	&& isset($args['active']) && isset($args['org_id']) )
-	{
-		
-		// call function is_authorized to check whether this action is allowed...
-		// for the user associated with the access token
-		// if not, return 401 unauthorized and exit
-		if ( !is_authorized( $args['ACCESS_TOKEN'], 1 ))
-		{
-			http_response_code(401);
-			exit(1);
-		}
-		
-		
-		$stmt = $conn->prepare("INSERT INTO mydb.players(player_name,birthdate,gender,active,org_id) VALUES (?,?,?,?,?)");
-		$stmt->bind_param("sssss",$args['player_name'],$args['birthdate'],$args['gender'],$args['active']
-		,$args['org_id']);
-		
-		//successful association creation
-		if ( $stmt->execute())
-		{
-			http_response_code(200);
-		}
-		
-		//failed
-		else
-			http_response_code(500);
-	}
-	
-	// Default: undefined operation
+	//successful operation
+	if ( $stmt->execute())
+		http_response_code(200);
+	//failed
 	else
-	{
-		http_response_code(400);
-	}
+		http_response_code(500);
+		
 }
-*/
 
-//function authenticate 
-//Returns true if the given user has the required authorization
+
+// function: processes a request to create a new player
+function createNewPlayer($player_name, $birthdate, $gender, $active, $org_id)
+{
+	global $conn;
+	
+	$stmt = $conn->prepare("INSERT INTO mydb.players(player_name,birthdate,gender,active,org_id) VALUES (?,?,?,?,?)");
+	$stmt->bind_param("sssss",$player_name,$birthdate,$gender,$active,$org_id);
+	
+	//successful operation
+	if ( $stmt->execute())
+		http_response_code(200);
+	//failed
+	else
+		http_response_code(500);
+		
+}
+
+
+// function: processes a request to delete a player
+function deletePlayer($player_name)
+{
+	global $conn;
+	
+	$stmt = $conn->prepare("DELETE FROM mydb.players WHERE player_name=?");
+	$stmt->bind_param("s",$player_name);
+	
+	//successful operation
+	if ( $stmt->execute())
+		http_response_code(200);
+	//failed
+	else
+		http_response_code(500);
+}
+
+
+//function: returns true if the given user has the required authorization, otherwise false
 function is_authorized ($access_token,$is_admin) 
 {
 	global $conn;
