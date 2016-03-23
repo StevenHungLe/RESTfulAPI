@@ -12,6 +12,7 @@ IF ( $conn->connect_error)
 {
 	die("can't connect:".$conn->connect_error);
 }
+			
 	// obtain user full request
 	$request = $_GET['request'];
 	
@@ -41,8 +42,8 @@ IF ( $conn->connect_error)
 		// CASE: DELETE method - the client is trying to log out
 		elseif ($_SERVER['REQUEST_METHOD'] == "DELETE" )
 		{
-			// get the needed parameters then call the logout function
-			$access_token = strtok("/");
+			// get the access_token from headers then call the logout function
+			$access_token = getallheaders()['access_token'];
 			logout( $access_token );
 		}
 		
@@ -55,9 +56,11 @@ IF ( $conn->connect_error)
 		// Decode the Json-encoded request body into array of arguments
 		$args = json_decode( file_get_contents('php://input'), true );
 	
-	
+		// get the access_token from headers
+		$access_token = getallheaders()['access_token'];
+			
 		// call function is_authorized to verify user's eligibility for this action
-		if ( !is_authorized( $args['ACCESS_TOKEN'], 1) )
+		if ( !is_authorized( $access_token, 1) )
 		{
 			http_response_code(401);
 			die ("Unauthorized action");
@@ -99,6 +102,17 @@ IF ( $conn->connect_error)
 	// CASE: DELETE method - the client is trying to delete an entry 
 	elseif( $_SERVER['REQUEST_METHOD'] == "DELETE" )
 	{	
+	
+		// get the access_token from headers
+		$access_token = getallheaders()['access_token'];
+		
+		// call function is_authorized to verify user's eligibility for this action
+		if ( !is_authorized( $access_token, 1) )
+		{
+			http_response_code(401);
+			die ("Unauthorized action");
+		}
+		
 		// CASE: users command - the client is trying to delete a user
 		if( $command == "users")
 		{

@@ -85,6 +85,11 @@ public class TestRestClient {
 		assertTrue(resp.getStatusCode() == 401);
 		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
+		resp = normalUser.deleteUser("hungle1001");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
+		
 	}
 	
 	
@@ -112,7 +117,12 @@ public class TestRestClient {
 		RestClient normalUser = new RestClient("user");
 		normalUser.login("user");
 		
-		resp = normalUser.createNewPlayer("hung le 2", "1990-12-07", "M", 1, "TEST");
+		resp = normalUser.createNewOrg("123456", "Org 1011");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
+		
+		resp = normalUser.deleteOrg("123456");
 		
 		assertTrue(resp.getStatusCode() == 401);
 		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
@@ -149,6 +159,11 @@ public class TestRestClient {
 		assertTrue(resp.getStatusCode() == 401);
 		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
+		resp = normalUser.deleteAssociation("TEST","hungle");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
+		
 	}
 		
 		
@@ -176,7 +191,12 @@ public class TestRestClient {
 		RestClient normalUser = new RestClient("user");
 		normalUser.login("user");
 		
-		resp = normalUser.createNewPlayer("hung le 2", "1990-12-07", "M", 1, "TEST");
+		resp = normalUser.createNewPlayer("hungle2", "1990-12-07", "M", 1, "TEST");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
+		
+		resp = normalUser.deletePlayer("hungle2");
 		
 		assertTrue(resp.getStatusCode() == 401);
 		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );

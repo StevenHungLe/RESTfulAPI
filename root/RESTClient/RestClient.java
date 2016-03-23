@@ -119,8 +119,9 @@ public class RestClient{
     	
     	this.connManager = new PoolingHttpClientConnectionManager();
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
-    	String url = String.format("http://localhost/API/login/%s", this.access_token);
+    	String url = String.format("http://localhost/API/login");
     	HttpDelete delete = new HttpDelete(url);
+    	delete.setHeader("access_token", access_token);
     	response = client.execute(delete);
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
     	
@@ -158,11 +159,11 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/users");
     	HttpPost post = new HttpPost(url);
+    	post.setHeader("access_token", access_token);
 
     	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     	
     	String jsonString = Json.createObjectBuilder()
-    			.add("ACCESS_TOKEN", this.access_token)
     			.add("USER_ID", user_id)
     			.add("PASSWORD", password)
     			.add("IS_ADMIN", isAdmin)
@@ -206,7 +207,7 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/users/%s",user_id);
     	HttpDelete delete = new HttpDelete(url);
-
+    	delete.setHeader("access_token", access_token);
     	response = client.execute(delete);
     	
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
@@ -239,11 +240,10 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/orgs");
     	HttpPost post = new HttpPost(url);
-
+    	post.setHeader("access_token", access_token);
     	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     	
     	String jsonString = Json.createObjectBuilder()
-    			.add("ACCESS_TOKEN", this.access_token)
     			.add("ORG_ID", org_id)
     			.add("ORG_NAME", org_name)
     			.build().toString();
@@ -253,6 +253,7 @@ public class RestClient{
     	params.setContentType("application/json; charset=UTF-8");
 
     	post.setEntity(params);
+    	
     	
     	response = client.execute(post);
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
@@ -286,7 +287,8 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/orgs/%s",org_id);
     	HttpDelete delete = new HttpDelete(url);
-
+    	delete.setHeader("access_token", access_token);
+    	
     	response = client.execute(delete);
     	
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
@@ -320,11 +322,10 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/associations");
     	HttpPost post = new HttpPost(url);
-
+    	post.setHeader("access_token", access_token);
     	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     	
     	String jsonString = Json.createObjectBuilder()
-    			.add("ACCESS_TOKEN", this.access_token)
     			.add("ORG_ID", org_id)
     			.add("USR_ID", usr_id)
     			.build()
@@ -368,7 +369,8 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/associations/%s/%s",org_id, usr_id);
     	HttpDelete delete = new HttpDelete(url);
-
+    	delete.setHeader("access_token", access_token);
+    	
     	response = client.execute(delete);
     	
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
@@ -401,11 +403,10 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/players");
     	HttpPost post = new HttpPost(url);
-
+    	post.setHeader("access_token", access_token);
     	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     	
     	String jsonString = Json.createObjectBuilder()
-    			.add("ACCESS_TOKEN", this.access_token)
     			.add("player_name", player_name)
     			.add("birthdate", birthdate)
     			.add("gender", gender)
@@ -450,7 +451,8 @@ public class RestClient{
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
     	String url = String.format("http://localhost/API/players/%s",player_name);
     	HttpDelete delete = new HttpDelete(url);
-
+    	delete.setHeader("access_token", access_token);
+    	
     	response = client.execute(delete);
     	
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
