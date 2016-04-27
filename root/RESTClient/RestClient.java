@@ -168,9 +168,9 @@ public class RestClient{
     	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     	
     	String jsonString = Json.createObjectBuilder()
-    			.add("USER_ID", user_id)
-    			.add("PASSWORD", password)
-    			.add("IS_ADMIN", isAdmin)
+    			.add("user_id", user_id)
+    			.add("password", password)
+    			.add("is_admin", isAdmin)
     			.build().toString();
     	
     	StringEntity params = new StringEntity(jsonString , "UTF-8"); 
@@ -287,8 +287,8 @@ public class RestClient{
     	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     	
     	String jsonString = Json.createObjectBuilder()
-    			.add("ORG_ID", org_id)
-    			.add("ORG_NAME", org_name)
+    			.add("org_id", org_id)
+    			.add("org_name", org_name)
     			.build().toString();
     	
     	StringEntity params = new StringEntity(jsonString , "UTF-8"); 
@@ -369,8 +369,8 @@ public class RestClient{
     	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     	
     	String jsonString = Json.createObjectBuilder()
-    			.add("ORG_ID", org_id)
-    			.add("USER_ID", user_id)
+    			.add("org_id", org_id)
+    			.add("user_id", user_id)
     			.build()
     			.toString();
     	
@@ -525,7 +525,7 @@ public class RestClient{
      *
      * @return   the decoded server response
      */
-    public ServerResponse addNewAssessment(int player_id, String name
+    public ServerResponse addNewAssessment(int player_id, String assessment_name
     		, String value, String date_and_time) throws Exception
     {
     	ServerResponse svrp = new ServerResponse();
@@ -540,7 +540,7 @@ public class RestClient{
     	
     	String jsonString = Json.createObjectBuilder()
     			.add("player_id", player_id)
-    			.add("name", name)
+    			.add("assessment_name", assessment_name)
     			.add("value", value)
     			.add("date_and_time", date_and_time)
     			.build().toString();
@@ -586,7 +586,7 @@ public class RestClient{
     	String url = String.format("http://localhost/API/players/%s/assessments",player_id);
     	HttpDelete delete = new HttpDelete(url);
     	delete.setHeader("access_token", access_token);
-    	delete.setHeader("name", name);
+    	delete.setHeader("assessment_name", name);
     	delete.setHeader("value", value);
     	delete.setHeader("date_and_time", date_and_time);
     	

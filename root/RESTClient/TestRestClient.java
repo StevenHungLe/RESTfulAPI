@@ -229,10 +229,28 @@ public class TestRestClient {
 		assertTrue(resp.getStatusCode() == 401);
 		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
-		resp = normalUser.deletePlayer("hungle2");
+		resp = normalUser.deletePlayer("just-a-test");
 		
 		assertTrue(resp.getStatusCode() == 401);
 		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
+		
+		
+		// CASE: normal user successfully create a player for their associated organization
+		RestClient associatedUser = new RestClient("0");
+		associatedUser.login("0");
+		
+		resp = associatedUser.createNewPlayer("hungle1234", "1990-12-07", "M", 1, "TEST");
+		
+		assertTrue(resp.getStatusCode() == 200);
+		
+		player_id = resp.getResponseBody();
+		
+		
+		// it has to be the admin who deletes the player
+		resp = admin.deletePlayer(player_id);
+		
+		assertTrue(resp.getStatusCode() == 200);
+		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
 	}
 	

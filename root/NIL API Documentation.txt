@@ -1,0 +1,96 @@
+NIL API Documentation
+
+This document list the functionalities supported by the API and how to use them. This includes the required URI and parameters as well as any elaboration as needed. Below are the general guidelines for reading the documentation: 
+•	The angle brackets “< >” indicate mandatory parameters. For example, /<user_id> means “/example_id”.   
+•	Square brackets “[ ]” indicate optional parameters. For example, users/<user_id> means “users/example_id” or “users”.
+•	All parameters and returned values are in the request/response body and in JSON format unless otherwise specified.
+
+
+**********************************************************************************************************************************************************
+GET methods:
+-Log-in : allow a user to log in by passing in the user_id and password 
+@URI: /API/access_token/<user_id>/<password>
+@return: the access_token generated for the user
+
+-Get most recent assessment: retrieve the most recent value for an assessment identified by player_id and assessment_name
+@URI: /API/players/<player_id>/assessments/<assessment_name>
+@return: the value of the assessment
+
+-Get assessment by date: retrieve the most recent value for an assessment that taken soonest before the specified date and time. The time parameter is optional, since the API will automatically adjust input to correct mysql date_and_time format.
+@URI: /API/players/<player_id>/assessments/<assessment_name>/<date>/[time]
+@return: the value of the assessment
+
+
+**********************************************************************************************************************************************************
+POST methods:
+-create new user: the creation of a user – admin only
+@URI: /API/users
+@header: access_token
+@parameters: user_id, password, is_admin
+
+-create new organization: the creation of an organization – admin only
+@URI: /API/orgs
+@header: access_token
+@parameters: org_id, org_name
+
+-create new org-user association: asssociate a user with an organization – admin only
+@URI: /API/associations
+@header: access_token
+@parameters: org_id, user_id
+
+-create new player: the creation of a new player – admin or a user associated with the organization that the player belongs to
+@URI: /API/players
+@header: access_token
+@parameters: player_name, birthdate, gender, active, org_id
+@return: the unique, self-increment player_id generated for this player
+
+
+-create new assessment: the creation of an assessment for a player – admin or a user associated with the organization that the player belongs to
+@URI: /API/players/<player_id>/assessments
+@header: access_token
+@parameters: asssessment_name, value, date_and_time
+
+
+**********************************************************************************************************************************************************
+PUT methods:
+-add log: append new logs to a log file identified by player_id and the name of the game – admin or the user associated with the organization that the player belongs to
+@URI: /API/players/<player_id>/logs/<game_name>
+@header: access_token
+@header: date – the date for this log
+@parameters: the content of the log (in plain text)
+
+-change password: allow a user to change their password
+@URI: /API/users/<user-name>/<old-password>/<new-password>
+
+
+
+**********************************************************************************************************************************************************
+DELETE methods:
+-log out: allow the user to log out
+@URI: /API/access_token
+@header: access_token
+
+-delete user: the deletion of a user – admin only
+@URI: /API/users/<user-id>
+@header: access_token
+
+-delete organization: the deletion of an organization – admin only
+@URI: /API/orgs/<org-id>
+@header: access_token
+
+-delete org-user association: delete an association between a user and an organization – admin only
+@URI: /API/associations/<org-id>/ <user-id>
+@header: access_token
+
+
+-delete player: the deletion of a player – admin only
+@URI: /API/players/<player-id>
+@header: access_token
+
+-delete assessment: the deletion of an assessment for a player – admin only
+@URI: /API/players/<player_id>/assessments
+@header: access_token
+@header: assessment_name
+@header: value
+@header: date_and_time
+
