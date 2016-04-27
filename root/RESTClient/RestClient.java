@@ -15,6 +15,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -78,7 +79,7 @@ public class RestClient{
     	
     	this.connManager = new PoolingHttpClientConnectionManager();
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
-    	String url = String.format("http://localhost/API/login/%s/%s", this.userName, password);
+    	String url = String.format("http://localhost/API/access_token/%s/%s", this.userName, password);
     	httpRequest = new HttpGet(url);
     	response = client.execute(httpRequest);
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
@@ -94,7 +95,7 @@ public class RestClient{
     	svrp.setStatusCode(statusCode);
     	if( statusCode == 200 )
     	{
-    		this.access_token = jsObject.getString("ACCESS_TOKEN");
+    		this.access_token = jsObject.getString("access_token");
     		svrp.setResponseBody(this.access_token);
     	}
     	else
@@ -119,7 +120,7 @@ public class RestClient{
     	
     	this.connManager = new PoolingHttpClientConnectionManager();
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
-    	String url = String.format("http://localhost/API/login");
+    	String url = String.format("http://localhost/API/access_token");
     	HttpDelete delete = new HttpDelete(url);
     	delete.setHeader("access_token", access_token);
     	response = client.execute(delete);
@@ -133,13 +134,16 @@ public class RestClient{
     	{
         	svrp.setResponseBody(SUCCESS_MSG);
     	}
+    	else if ( statusCode == 401 )
+    		svrp.setResponseBody(UNAUTHORIZED_MSG);
+    	/*
     	else
     	{
     		jsReader = Json.createReader(reader);
         	JsonObject jsObject = jsReader.readObject();
     		String error_msg = jsObject.getString("error_msg");
         	svrp.setResponseBody(error_msg);
-    	}
+    	}*/
     	
     	this.connManager.shutdown();
     	return svrp;
@@ -176,6 +180,45 @@ public class RestClient{
     	post.setEntity(params);
     	
     	response = client.execute(post);
+    	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+    	
+    	
+    	int statusCode = Integer.parseInt(response.getStatusLine().toString().split(" ")[1]);
+    	
+    	svrp.setStatusCode(statusCode);
+    	
+    	if( statusCode == 200)
+        	svrp.setResponseBody(SUCCESS_MSG);
+    	else if ( statusCode == 401 )
+    		svrp.setResponseBody(UNAUTHORIZED_MSG);
+
+    	this.connManager.shutdown();
+
+    	return svrp;
+    }
+    
+    
+    
+    
+    /**
+     * Encodes a change password request.
+     *
+     * @return  the decoded server response
+     */
+    public ServerResponse changePassword(String old_password, String new_password) throws Exception
+    {
+    	ServerResponse svrp = new ServerResponse();
+    	
+    	this.connManager = new PoolingHttpClientConnectionManager();
+    	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
+    	String url = String.format("http://localhost/API/users/%s/%s/%s"
+    			, this.userName
+    			, old_password
+    			, new_password);
+    	HttpPut put = new HttpPut(url);
+    	put.setHeader("access_token", access_token);
+    	
+    	response = client.execute(put);
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
     	
     	
@@ -314,7 +357,7 @@ public class RestClient{
      *
      * @return   the decoded server response
      */
-    public ServerResponse assocOrgWithUser(String org_id, String usr_id) throws Exception
+    public ServerResponse assocOrgWithUser(String org_id, String user_id) throws Exception
     {
     	ServerResponse svrp = new ServerResponse();
     	
@@ -327,7 +370,7 @@ public class RestClient{
     	
     	String jsonString = Json.createObjectBuilder()
     			.add("ORG_ID", org_id)
-    			.add("USR_ID", usr_id)
+    			.add("USER_ID", user_id)
     			.build()
     			.toString();
     	
@@ -429,7 +472,11 @@ public class RestClient{
     	svrp.setStatusCode(statusCode);
     	
     	if( statusCode == 200)
-        	svrp.setResponseBody(SUCCESS_MSG);
+    	{
+    		jsReader = Json.createReader(reader);
+    		jsObject = jsReader.readObject();
+        	svrp.setResponseBody(jsObject.getString("player_id"));
+    	}
     	else if ( statusCode == 401 )
     		svrp.setResponseBody(UNAUTHORIZED_MSG);
 
@@ -443,19 +490,243 @@ public class RestClient{
      *
      * @return  the decoded server response
      */
-    public ServerResponse deletePlayer(String player_name) throws Exception
+    public ServerResponse deletePlayer(String player_id) throws Exception
     {
     	ServerResponse svrp = new ServerResponse();
     	
     	this.connManager = new PoolingHttpClientConnectionManager();
     	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
-    	String url = String.format("http://localhost/API/players/%s",player_name);
+    	String url = String.format("http://localhost/API/players/%s",player_id);
     	HttpDelete delete = new HttpDelete(url);
     	delete.setHeader("access_token", access_token);
     	
     	response = client.execute(delete);
     	
     	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+    	
+    	int statusCode = Integer.parseInt(response.getStatusLine().toString().split(" ")[1]);
+    	
+    	svrp.setStatusCode(statusCode);
+    	
+    	if( statusCode == 200)
+        	svrp.setResponseBody(SUCCESS_MSG);
+    	else if ( statusCode == 401 )
+    		svrp.setResponseBody(UNAUTHORIZED_MSG);
+
+    	this.connManager.shutdown();
+
+    	return svrp;
+    }
+    
+    
+    
+    /**
+     * Encodes an add new assessment request.
+     *
+     * @return   the decoded server response
+     */
+    public ServerResponse addNewAssessment(int player_id, String name
+    		, String value, String date_and_time) throws Exception
+    {
+    	ServerResponse svrp = new ServerResponse();
+    	
+    	this.connManager = new PoolingHttpClientConnectionManager();
+    	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
+    	String url = String.format("http://localhost/API/players/%d/assessments",player_id);
+    	
+    	HttpPost post = new HttpPost(url);
+    	post.setHeader("access_token", access_token);
+    	post.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+    	
+    	String jsonString = Json.createObjectBuilder()
+    			.add("player_id", player_id)
+    			.add("name", name)
+    			.add("value", value)
+    			.add("date_and_time", date_and_time)
+    			.build().toString();
+    	
+    	StringEntity params = new StringEntity(jsonString , "UTF-8"); 
+
+    	params.setContentType("application/json; charset=UTF-8");
+
+    	post.setEntity(params);
+    	
+    	response = client.execute(post);
+    	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+    	
+    	
+    	int statusCode = Integer.parseInt(response.getStatusLine().toString().split(" ")[1]);
+    	
+    	svrp.setStatusCode(statusCode);
+    	
+    	if( statusCode == 200)
+        	svrp.setResponseBody(SUCCESS_MSG);
+    	else if ( statusCode == 401 )
+    		svrp.setResponseBody(UNAUTHORIZED_MSG);
+
+    	this.connManager.shutdown();
+
+    	return svrp;
+    }
+    
+    
+    
+    
+    /**
+     * Encodes a delete assessment request.
+     *
+     * @return  the decoded server response
+     */
+    public ServerResponse deleteAssessment(int player_id, String name, String value, String date_and_time) throws Exception
+    {
+    	ServerResponse svrp = new ServerResponse();
+    	
+    	this.connManager = new PoolingHttpClientConnectionManager();
+    	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
+    	String url = String.format("http://localhost/API/players/%s/assessments",player_id);
+    	HttpDelete delete = new HttpDelete(url);
+    	delete.setHeader("access_token", access_token);
+    	delete.setHeader("name", name);
+    	delete.setHeader("value", value);
+    	delete.setHeader("date_and_time", date_and_time);
+    	
+    	response = client.execute(delete);
+    	
+    	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+    	
+    	int statusCode = Integer.parseInt(response.getStatusLine().toString().split(" ")[1]);
+    	
+    	svrp.setStatusCode(statusCode);
+    	
+    	if( statusCode == 200)
+        	svrp.setResponseBody(SUCCESS_MSG);
+    	else if ( statusCode == 401 )
+    		svrp.setResponseBody(UNAUTHORIZED_MSG);
+
+    	this.connManager.shutdown();
+
+    	return svrp;
+    }
+    
+    
+    
+    /**
+     * Encodes a getMostRecentAssessment request.
+     *
+     * @param none
+     * @return the decoded server response
+     */
+    public ServerResponse getMostRecentAssessment(long player_id, String assessment_name) throws Exception
+    {
+    	ServerResponse svrp = new ServerResponse();
+    	
+    	this.connManager = new PoolingHttpClientConnectionManager();
+    	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
+    	String url = String.format("http://localhost/API/players/%d/assessments/%s", player_id, assessment_name);
+    	httpRequest = new HttpGet(url);
+    	httpRequest.setHeader("access_token",access_token);
+    	response = client.execute(httpRequest);
+    	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+
+    	
+    	
+    	int statusCode = Integer.parseInt(response.getStatusLine().toString().split(" ")[1]);
+    	
+    	/*if (jsObject.toString().equals("{}"))
+    		svrp.setStatusCode(500);*/
+    	
+    	svrp.setStatusCode(statusCode);
+    	if( statusCode == 200 )
+    	{
+    		jsReader = Json.createReader(reader);
+        	jsObject = jsReader.readObject();
+    		svrp.setResponseBody(jsObject.getString("value"));
+    	}
+    	else if ( statusCode == 401 )
+    		svrp.setResponseBody(UNAUTHORIZED_MSG);
+    	/*
+    	else
+    	{
+    		String error_msg = reader.readLine();
+    		svrp.setResponseBody(error_msg);
+    		
+    	}*/
+    	
+    	this.connManager.shutdown();
+    	return svrp;
+    }
+    
+    
+    /**
+     * Encodes a get assessment by date request.
+     *
+     * @param none
+     * @return the decoded server response
+     */
+    public ServerResponse getAssessmentByDate(long player_id, String assessment_name, String date_and_time) throws Exception
+    {
+    	ServerResponse svrp = new ServerResponse();
+    	
+    	this.connManager = new PoolingHttpClientConnectionManager();
+    	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
+    	String url = String.format("http://localhost/API/players/%d/assessments/%s/%s", player_id, assessment_name,date_and_time);
+    	httpRequest = new HttpGet(url);
+    	httpRequest.setHeader("access_token",access_token);
+    	response = client.execute(httpRequest);
+    	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+
+    	jsReader = Json.createReader(reader);
+    	
+    	
+    	int statusCode = Integer.parseInt(response.getStatusLine().toString().split(" ")[1]);
+    	
+    	svrp.setStatusCode(statusCode);
+    	if( statusCode == 200 )
+    	{
+    		jsObject = jsReader.readObject();
+    		svrp.setResponseBody(jsObject.getString("value"));
+    	}
+    	else if ( statusCode == 401 )
+    		svrp.setResponseBody(UNAUTHORIZED_MSG);
+    	/*
+    	else
+    	{
+    		String error_msg = jsObject.getString("error_msg");
+    		svrp.setResponseBody(error_msg);
+    		
+    	}*/
+    	
+    	this.connManager.shutdown();
+    	return svrp;
+    }
+    
+    /**
+     * Encodes a log request
+     *
+     * @return   the decoded server response
+     */
+    public ServerResponse add_log(String player_id, String game_name, String date, String log_body) throws Exception
+    {
+    	ServerResponse svrp = new ServerResponse();
+    	
+    	this.connManager = new PoolingHttpClientConnectionManager();
+    	client = HttpClientBuilder.create().setConnectionManager(connManager).build();
+    	String url = String.format("http://localhost/API/players/%s/logs/%s",
+    			player_id,game_name);
+    	HttpPut put = new HttpPut(url);
+    	put.setHeader("access_token", access_token);
+    	put.setHeader("date", date);
+    	put.setHeader(HttpHeaders.CONTENT_TYPE, "text/plain");
+    	
+    	StringEntity params = new StringEntity(log_body, "UTF-8"); 
+
+    	params.setContentType("text/plain; charset=UTF-8");
+
+    	put.setEntity(params);
+    	
+    	response = client.execute(put);
+    	reader = new BufferedReader (new InputStreamReader(response.getEntity().getContent()));
+    	
     	
     	int statusCode = Integer.parseInt(response.getStatusLine().toString().split(" ")[1]);
     	
