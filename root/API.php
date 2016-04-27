@@ -119,7 +119,7 @@
 				http_response_code(401);
 				die ("Unauthorized action");
 			}
-			createNewUser($args['USER_ID'],$args['PASSWORD'],$args['IS_ADMIN']);
+			createNewUser($args['user_id'],$args['password'],$args['is_admin']);
 		}
 		
 		// target resource: orgs target_resource - the client is trying to create a new organization
@@ -131,7 +131,7 @@
 				http_response_code(401);
 				die ("Unauthorized action");
 			}
-			createNewOrg($args['ORG_ID'],$args['ORG_NAME']);
+			createNewOrg($args['org_id'],$args['org_name']);
 		}
 		
 		// target resource: associations target_resource - the client is trying to create a new user-organization association
@@ -143,7 +143,7 @@
 				http_response_code(401);
 				die ("Unauthorized action");
 			}
-			assocOrgWithUser($args['ORG_ID'],$args['USER_ID']);
+			assocOrgWithUser($args['org_id'],$args['user_id']);
 		}
 		
 		// target resource: players target_resource - the client is trying to create a new player or a new assessment
@@ -159,7 +159,7 @@
 					http_response_code(401);
 					die ("Unauthorized action");
 				}
-				addNewAssessment($player_id, $args['name'], $args['value'], $args['date']);
+				addNewAssessment($player_id, $args['assessment_name'], $args['value'], $args['date_and_time']);
 			}
 			else
 			{
@@ -279,7 +279,7 @@
 			
 			if ( $sub_target_resource == "assessments") // delete an assessment
 			{
-				deleteAssessment($player_id,$headers['name'],$headers['value'],$headers['date']);
+				deleteAssessment($player_id,$headers['assessment_name'],$headers['value'],$headers['date_and_time']);
 			}
 			else // delete a player
 			{
@@ -790,7 +790,7 @@ function is_authorized_for_org ($access_token,$org_id)
 		return true;
 	else
 	{
-		$sql = "SELECT * FROM nildb.org_user NATURAL JOIN nildb.access_token WHERE org_id ={$org_id} AND access_token='{$access_token}'";
+		$sql = "SELECT * FROM nildb.org_user NATURAL JOIN nildb.access_token WHERE org_id ='{$org_id}' AND access_token='{$access_token}'";
 		$result = $conn->query($sql);
 
 		if($result AND $result->num_rows > 0) 
