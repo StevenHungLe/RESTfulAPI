@@ -9,203 +9,238 @@ import java.text.SimpleDateFormat;
 import org.junit.Test;
 
 public class TestRestClient {
-
-	// Test login method
+	
+/************************************************
+ * 												*
+ * TEST CASES FOR LOGIN METHOD					*
+ * 												*
+ ************************************************/
+	// CASE: successful login
+	// expected outcome: 	-status code 200
+	// 						-response body contains access_token that starts with the user name
 	@Test
-	public void testLogin() throws Exception {
+	public void successfulLogin() throws Exception {
 		
-		// CASE: successful log-in
 		RestClient client = new RestClient("admin");
 		ServerResponse resp = client.login("admin123456");
 		
 		assertTrue(resp.getStatusCode() == 200);
 		assertTrue(resp.getResponseBody().startsWith("admin"));
 		
-		
-		// CASE: log-in with a wrong user name
-		client = new RestClient("someDistortedName");
-		resp = client.login("admin123456");
-		
-		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals("AUTHENTICATION FAILED"));
-		
-		// CASE: log-in with a wrong password
-		client = new RestClient("admin");
-		resp = client.login("someAbsurdPassword");
+		client.logout();
+	}
+	
+	
+	// CASE: failed login due to wrong user name
+	// expected outcome: 	-status code 401
+	// 						-response body contains error message
+	@Test
+	public void wrongUserNameLogin() throws Exception {
+
+		RestClient client = new RestClient("someDistortedName");
+		ServerResponse resp = client.login("admin123456");
 		
 		assertTrue(resp.getStatusCode() == 401);
 		assertTrue(resp.getResponseBody().equals("AUTHENTICATION FAILED"));
 	}
 	
 	
-	// Test logout method
+	// CASE: failed login due to wrong password
+	// expected outcome: 	-status code 401
+	// 						-response body contains error message
 	@Test
-	public void testLogout() throws Exception {
+	public void wrongPasswordLogin() throws Exception {
 		
-		// CASE: successful log-in & successful log-out
+		RestClient client = new RestClient("admin");
+		ServerResponse resp = client.login("someAbsurdPassword");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		assertTrue(resp.getResponseBody().equals("AUTHENTICATION FAILED"));
+	}
+	
+	
+	
+	
+/************************************************
+ * 												*
+ * TEST CASES FOR LOGOUT METHOD					*
+ * 												*
+ ************************************************/
+	// CASE: successful logout
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulLogout() throws Exception {
+		
 		RestClient client = new RestClient("admin");
 		client.login("admin123456");
 		
 		ServerResponse resp = client.logout();
 		assertTrue(resp.getStatusCode() == 200);
-		
-		
-		// CASE: failed log-in -> failed log-out
-		client = new RestClient("SomeWeirdName");
-		client.login("SomeWeirdPassword");
-		
-		resp = client.logout();
-		assertTrue(resp.getStatusCode() != 200);
 	}
 	
 	
-	// Test createNewUser method
+	// CASE: failed logout due to failed login
+	// expected outcome: 	-status code 401
+	// 						-response body contains error message
 	@Test
-	public void testCreateNewUser() throws Exception {
+	public void failedLogout() throws Exception {
+
+		RestClient client = new RestClient("SomeWeirdName");
+		client.login("SomeWeirdPassword");
 		
-		// CASE: admin successfully creates a new user
+		ServerResponse resp = client.logout();
+		assertFalse(resp.getStatusCode() == 200);
+	}
+	
+
+/************************************************
+ * 												*
+ * TEST CASES FOR CREATE NEW USER METHOD		*
+ * 												*
+ ************************************************/
+	// CASE: successful user creation by an admin
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulNewUserCreation() throws Exception {
+		
 		RestClient admin = new RestClient("admin");
 		admin.login("admin123456");
 		
 		ServerResponse resp = admin.createNewUser("test1111", "test1111", 1);
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
 		// delete the testing entry, making sure the deletion is properly handled too
 		resp = admin.deleteUser("test1111");
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
-		
-		// CASE: normal user get declined for unauthorized action
+		admin.logout();
+	}
+	
+	
+	// CASE: failed user creation because the action is attempted by a normal user
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedNewUserCreation() throws Exception {
+
 		RestClient normalUser = new RestClient("user");
 		normalUser.login("user");
 		
-		resp = normalUser.createNewUser("hungle1001", "Hung Le 1001", 1);
+		ServerResponse resp = normalUser.createNewUser("hungle1001", "Hung Le 1001", 1);
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
 		resp = normalUser.deleteUser("hungle1001");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
+		normalUser.logout();
 	}
 	
 	
-	
-	// Test changePassword method
+/************************************************
+ * 												*
+ * TEST CASES FOR CREATE NEW ORGANIZATION 		*
+ * 												*
+ ************************************************/
+	// CASE: successful organization creation by an admin
+	// expected outcome: 	-status code 200
 	@Test
-	public void testChangePassword() throws Exception {
+	public void successfulNewOrgCreation() throws Exception {
 		
-		// CASE: a user successfully change password by providing correct current password
-		RestClient user = new RestClient("user");
-		user.login("user");
-		
-		
-		ServerResponse resp = user.changePassword("user", "user123456");
-		
-		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
-		
-		// change the testing password back to the old password
-		resp = user.changePassword("user123456", "user");
-		
-		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
-		
-		
-		// CASE: user fails to change password by providing incorrect old password
-		resp = user.changePassword("wrong_old_password", "newpassword");
-		
-		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
-		
-	}
-	
-	
-	// Test createNewOrg method
-	@Test
-	public void testCreateNewOrg() throws Exception {
-		
-		// CASE: admin successfully creates a new organization
 		RestClient admin = new RestClient("admin");
 		admin.login("admin123456");
 		
 		ServerResponse resp = admin.createNewOrg("123456", "Org 1011");
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
 		// delete the testing entry, making sure the deletion is properly handled too
 		resp = admin.deleteOrg("123456");
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
-		
-		// CASE: normal user get declined for unauthorized action
+		admin.logout();
+	}
+	
+	
+	// CASE: failed organization creation because the action is attempted by a normal user
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedNewOrgCreation() throws Exception {
+
 		RestClient normalUser = new RestClient("user");
 		normalUser.login("user");
 		
-		resp = normalUser.createNewOrg("123456", "Org 1011");
+		ServerResponse resp = normalUser.createNewOrg("123456", "Org 1011");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
 		resp = normalUser.deleteOrg("123456");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
+		normalUser.logout();
 	}
 	
-	
-	
-	// Test assocOrgWithUser method
+
+/*************************************************
+ * 												 *
+ * TEST CASES FOR CREATE NEW ORG_USER ASSOCIATION*
+ * 												 *
+ *************************************************/
+	// CASE: successful association creation by an admin
+	// expected outcome: 	-status code 200
 	@Test
-	public void testAssocOrgWithUser() throws Exception {
+	public void successfulNewAssocCreation() throws Exception {
 		
-		// CASE: admin successfully creates a new association
 		RestClient admin = new RestClient("admin");
 		admin.login("admin123456");
 		
 		ServerResponse resp = admin.assocOrgWithUser("TEST","admin");
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
 		// delete the testing entry, making sure the deletion is properly handled too
 		resp = admin.deleteAssociation("TEST","admin");
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
-		// CASE: normal user get declined for unauthorized action
+		admin.logout();
+	}
+	
+	
+	// CASE: failed association creation because the action is attempted by a normal user
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedNewAssocCreation() throws Exception {
+
 		RestClient normalUser = new RestClient("user");
 		normalUser.login("user");
 		
-		resp = normalUser.assocOrgWithUser("TEST","admin");
+		ServerResponse resp = normalUser.assocOrgWithUser("TEST","admin");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
 		resp = normalUser.deleteAssociation("TEST","admin");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
-	}	
-		
+		normalUser.logout();
+	}
 	
-	// Test createNewPlayer method
+	
+/*************************************************
+ * 												 *
+ * TEST CASES FOR CREATE NEW PLAYER   			 *
+ * 												 *
+ *************************************************/
+	// CASE: successful player creation by an admin
+	// expected outcome: 	-status code 200
 	@Test
-	public void testCreateNewPlayer() throws Exception {
+	public void successfulNewPlayerCreation() throws Exception {
 		
-		// CASE: admin successfully creates a new player
 		RestClient admin = new RestClient("admin");
 		admin.login("admin123456");
 		
@@ -218,85 +253,178 @@ public class TestRestClient {
 		resp = admin.deletePlayer(player_id);
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
-		// CASE: normal user get declined for unauthorized action
+		admin.logout();
+	}
+	
+	
+	// CASE: failed player creation because the action is attempted by a normal user
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedNewPlayerCreation() throws Exception {
+
 		RestClient normalUser = new RestClient("user");
 		normalUser.login("user");
 		
-		resp = normalUser.createNewPlayer("hungle2", "1990-12-07", "M", 1, "TEST");
+		ServerResponse resp = normalUser.createNewPlayer("hungle2", "1990-12-07", "M", 1, "TEST");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
 		resp = normalUser.deletePlayer("just-a-test");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
+		normalUser.logout();
+	}	
+	
+	// CASE: successful player creation by a user associated with the organization 
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulNewPlayerCreationByNorMalUser() throws Exception {
 		
-		// CASE: normal user successfully create a player for their associated organization
 		RestClient associatedUser = new RestClient("0");
 		associatedUser.login("0");
 		
-		resp = associatedUser.createNewPlayer("hungle1234", "1990-12-07", "M", 1, "TEST");
+		ServerResponse resp = associatedUser.createNewPlayer("hungle1234", "1990-12-07", "M", 1, "TEST");
 		
 		assertTrue(resp.getStatusCode() == 200);
 		
-		player_id = resp.getResponseBody();
-		
+		String player_id = resp.getResponseBody();
 		
 		// it has to be the admin who deletes the player
+		RestClient admin = new RestClient("admin");
+		admin.login("admin123456");
 		resp = admin.deletePlayer(player_id);
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
+		associatedUser.logout();
+		admin.logout();
 	}
 	
 	
-	// Test AddNewAssessment method
-		@Test
-		public void testAddNewAssessment() throws Exception {
-			
-			// CASE: admin successfully creates a new assessment
-			RestClient admin = new RestClient("admin");
-			admin.login("admin123456");
-			
-			ServerResponse resp = admin.addNewAssessment(1, "AAAAAAA", "A", "2016-04-12 10:00:00");
-			
-			assertTrue(resp.getStatusCode() == 200);
-			
-			assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
-			
-			// delete the testing entry, making sure the deletion is properly handled too
-			resp = admin.deleteAssessment(1, "AAAAAAA", "A", "2016-04-12 10:00:00");
-			
-			assertTrue(resp.getStatusCode() == 200);
-			assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
-			
-			// CASE: normal user get declined for unauthorized action
-			RestClient normalUser = new RestClient("user");
-			normalUser.login("user");
-			
-			resp = normalUser.addNewAssessment(1, "justATest", "A", "2016-04-12 10:00:00");
-			
-			assertTrue(resp.getStatusCode() == 401);
-			assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
-			
-			resp = normalUser.deleteAssessment(1, "AAAAAAA", "A", "2016-04-12 10:00:00");
-			
-			assertTrue(resp.getStatusCode() == 401);
-			assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
-			
-		}
+/*************************************************
+ * 												 *
+ * TEST CASES FOR CREATE NEW ASSESSMENTS   		 *
+ * 												 *
+ *************************************************/
+	// CASE: successful assessment creation by an admin
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulNewAssessmentCreation() throws Exception {
+		
+		RestClient admin = new RestClient("admin");
+		admin.login("admin123456");
+		
+		ServerResponse resp = admin.addNewAssessment(1, "AAAAAAA", "A", "2016-04-12 10:00:00");
+		
+		assertTrue(resp.getStatusCode() == 200);
+		
+		// delete the testing entry, making sure the deletion is properly handled too
+		resp = admin.deleteAssessment(1, "AAAAAAA", "A", "2016-04-12 10:00:00");
+		
+		assertTrue(resp.getStatusCode() == 200);
+		
+		admin.logout();
+	}
+	
+	
+	// CASE: failed assessment creation because the action is attempted by a normal user
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedNewAssessmentCreation() throws Exception {
+
+		RestClient normalUser = new RestClient("user");
+		normalUser.login("user");
+		
+		ServerResponse resp = normalUser.addNewAssessment(1, "justATest", "A", "2016-04-12 10:00:00");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		
+		resp = normalUser.deleteAssessment(1, "justATest", "A", "2016-04-12 10:00:00");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		
+		normalUser.logout();
+	}	
+	
+	// CASE: successful assessment creation by a user associated with the organization 
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulNewAssessmentCreationByNorMalUser() throws Exception {
+		
+		RestClient associatedUser = new RestClient("0");
+		associatedUser.login("0");
+		
+		ServerResponse resp = associatedUser.addNewAssessment(1, "justATest", "A", "2016-04-12 10:00:00");
+		assertTrue(resp.getStatusCode() == 200);
+		
+		// it has to be the admin who deletes the assessment
+		RestClient admin = new RestClient("admin");
+		admin.login("admin123456");
+		resp = admin.deleteAssessment(1, "justATest", "A", "2016-04-12 10:00:00");
+		
+		assertTrue(resp.getStatusCode() == 200);
+		
+		associatedUser.logout();
+		admin.logout();
+	}
+
+	
+	
+	
+/*************************************************
+ * 												 *
+ * TEST CASES FOR CHANGE PASSWORD METHOD  		 *
+ * 												 *
+ *************************************************/
+	// CASE: successful password change by providing the correct current password
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulPasswordChance() throws Exception {
+		
+		RestClient user = new RestClient("user");
+		user.login("user");
+		
+		ServerResponse resp = user.changePassword("user", "user123456");
+		
+		assertTrue(resp.getStatusCode() == 200);
+		
+		// change the testing password back to the old password
+		resp = user.changePassword("user123456", "user");
+		
+		assertTrue(resp.getStatusCode() == 200);
+		
+		user.logout();
+	}
+	
+	
+	// CASE: failed password change by providing wrong current password
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedPasswordChance() throws Exception {
+		RestClient user = new RestClient("user");
+		user.login("user");
+		
+		ServerResponse resp = user.changePassword("wrong_old_password", "newpassword");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		
+		user.logout();
+	}
 		
 	
-	// Test add_log method
+	
+/*************************************************
+ * 												 *
+ * TEST CASES FOR ADD LOG METHOD 	   			 *
+ * 												 *
+ *************************************************/
+	// CASE: successful adding a log by an admin
+	// expected outcome: 	-status code 200
 	@Test
-	public void testAdd_Log() throws Exception {
+	public void successfulLogAddition() throws Exception {
 		
-		// CASE: admin successfully add a log
 		RestClient admin = new RestClient("admin");
 		admin.login("admin123456");
 		
@@ -307,44 +435,61 @@ public class TestRestClient {
 				+ "\ncompleted level 2. Score: 94" );
 		
 		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
 		
-		
-		// CASE: normal user successfully add a log for a player in his organization
-		RestClient normal_user = new RestClient("0");
-		normal_user.login("0");
-		
-		date = new SimpleDateFormat("yyyy/MM/dd");
-		resp = normal_user.add_log("1", "normal_user_test", date.format(new Date()),
-				"started a new game"
-				+ "\ncompleted level 1. Score: 100"
-				+ "\ncompleted level 2. Score: 94" );
-		
-		assertTrue(resp.getStatusCode() == 200);
-		assertTrue(resp.getResponseBody().equals(RestClient.SUCCESS_MSG) );
-		
-		
-		// CASE: normal user fail to add log for a player not in his organization
-		normal_user = new RestClient("user");
+		admin.logout();
+	}
+	
+	
+	// CASE: failed adding log by a normal user not associated with the organization
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedLogAddition() throws Exception {
+
+		RestClient normal_user = new RestClient("user");
 		normal_user.login("user");
 		
-		date = new SimpleDateFormat("yyyy/MM/dd");
-		resp = normal_user.add_log("1", "normal_user_fail_test", date.format(new Date()),
+		SimpleDateFormat date = new SimpleDateFormat("yyyy/MM/dd");
+		ServerResponse resp = normal_user.add_log("1", "normal_user_fail_test", date.format(new Date()),
 				"started a new game"
 				+ "\ncompleted level 1. Score: 100"
 				+ "\ncompleted level 2. Score: 94" );
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
+		normal_user.logout();
+	}
+	
+	// CASE: successful adding log by a user associated with the organization 
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulLogAdditionByNormalUser() throws Exception {
+		
+		RestClient associatedUser = new RestClient("0");
+		associatedUser.login("0");
+		
+		SimpleDateFormat date = new SimpleDateFormat("yyyy/MM/dd");
+		ServerResponse resp = associatedUser.add_log("1", "normal_user_fail_test", date.format(new Date()),
+				"started a new game"
+				+ "\ncompleted level 1. Score: 100"
+				+ "\ncompleted level 2. Score: 94" );
+		
+		assertTrue(resp.getStatusCode() == 200);
+		
+		associatedUser.logout();
 	}
 	
 	
-	// Test GetMostRecentAssessment method
+	
+/*************************************************
+ * 												 *
+ * TEST CASES FOR GET MOST RECENT ASSESSMENT	 *
+ * 												 *
+ *************************************************/
+	// CASE: successful retrieval of the value by an admin
+	// expected outcome: 	-status code 200
 	@Test
-	public void testGetMostRecentAssessment() throws Exception {
+	public void successfulValueRetrieval() throws Exception {
 		
-		// CASE: admin successfully carries out the action
 		RestClient admin = new RestClient("admin");
 		admin.login("admin123456");
 		
@@ -353,34 +498,53 @@ public class TestRestClient {
 		assertTrue(resp.getStatusCode() == 200);
 		assertTrue(resp.getResponseBody().equals("C") );
 		
-		
-		// CASE: normalUser successfully carries out the action for the player he is associated with
+		admin.logout();
+	}
+	
+	
+	// CASE: failed retrieval of the value by a normal user not associated with the organization
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedValueRetrieval() throws Exception {
+
 		RestClient normalUser = new RestClient("0");
 		normalUser.login("0");
 		
-		resp = normalUser.getMostRecentAssessment(1, "game1");
+		ServerResponse resp = normalUser.getMostRecentAssessment(3, "game1");
+		
+		assertTrue(resp.getStatusCode() == 401);
+		
+		normalUser.logout();
+	}
+	
+	// CASE: successful retrieval of the value by a user associated with the organization 
+	// expected outcome: 	-status code 200
+	@Test
+	public void successfulValueRetrievalByNormalUser() throws Exception {
+		
+		RestClient associatedUser = new RestClient("0");
+		associatedUser.login("0");
+		
+		ServerResponse resp = associatedUser.getMostRecentAssessment(1, "game1");
 		
 		assertTrue(resp.getStatusCode() == 200);
 		assertTrue(resp.getResponseBody().equals("C") );
 		
-		
-		// CASE: normalUser cannot carry out the action for the player he is not associated with
-		normalUser = new RestClient("0");
-		normalUser.login("0");
-		
-		resp = normalUser.getMostRecentAssessment(3, "game1");
-		
-		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
-		
+		associatedUser.logout();
 	}
 	
 	
-	// Test GetAssessmentByDate method
+	
+/*************************************************
+ * 												 *
+ * TEST CASES FOR GET ASSESSMENT BY DATE 		 *
+ * 												 *
+ *************************************************/
+	// CASE: successful retrieval of the value by an admin
+	// expected outcome: 	-status code 200
 	@Test
-	public void testGetAssessmentByDate() throws Exception {
+	public void successfulValueRetrievalByDate() throws Exception {
 		
-		// CASE: admin successfully carries out the action
 		RestClient admin = new RestClient("admin");
 		admin.login("admin123456");
 		
@@ -395,16 +559,23 @@ public class TestRestClient {
 		assertTrue(resp.getStatusCode() == 200);
 		assertTrue(resp.getResponseBody().equals("A") );
 		
-		
-		// CASE: normal user get declined for unauthorized action
+		admin.logout();
+	}
+	
+	
+	// CASE: failed retrieval of the value by a normal user
+	// expected outcome: 	-status code 401
+	@Test
+	public void failedValueRetrievalByDate() throws Exception {
+
 		RestClient normalUser = new RestClient("user");
-		normalUser.login("user"); // ATTENTION!!!
+		normalUser.login("user");
 		
-		resp = normalUser.getAssessmentByDate(1, "game1","2016-04-20");
+		ServerResponse resp = normalUser.getAssessmentByDate(1, "game1","2016-04-20");
 		
 		assertTrue(resp.getStatusCode() == 401);
-		assertTrue(resp.getResponseBody().equals(RestClient.UNAUTHORIZED_MSG) );
 		
+		normalUser.logout();
 	}
 
 }
